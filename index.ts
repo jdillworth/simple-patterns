@@ -99,7 +99,11 @@ function makeSimplePatternBuilder(existingPattern:SimplePattern):PatternBuilder 
     if (existingPattern) {
       let q = existingPattern.nextQuantity || '';
       existingPattern.nextQuantity = null;
-      existingPattern.parts.push(subPattern.toRegexSource() + q);
+      if (q) {
+        existingPattern.parts.push('(' + subPattern.toRegexSource() + ')' + q);
+      } else {
+        existingPattern.parts.push(subPattern.toRegexSource());
+      }
       return existingPattern;
     } else {
       return subPattern;

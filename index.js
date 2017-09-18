@@ -107,7 +107,12 @@ function makeSimplePatternBuilder(existingPattern) {
         if (existingPattern) {
             var q = existingPattern.nextQuantity || '';
             existingPattern.nextQuantity = null;
-            existingPattern.parts.push(subPattern.toRegexSource() + q);
+            if (q) {
+                existingPattern.parts.push('(' + subPattern.toRegexSource() + ')' + q);
+            }
+            else {
+                existingPattern.parts.push(subPattern.toRegexSource());
+            }
             return existingPattern;
         }
         else {
