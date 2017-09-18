@@ -1,0 +1,29 @@
+{
+  "name": "simple-patterns",
+  "version": "0.0.1",
+  "description": "A library to make using regular expressions simpler",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jdillworth/simple-patterns-js.git"
+  },
+  "keywords": [
+    "regular",
+    "expressions",
+    "matching"
+  ],
+  "author": "Jeremy Dillworth",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jdillworth/simple-patterns-js/issues"
+  },
+  "homepage": "https://github.com/jdillworth/simple-patterns-js#readme",
+  "devDependencies": {
+    "@types/mocha": "^2.2.43",
+    "mocha": "^3.5.3",
+    "typescript": "^2.5.2"
+  }
+}
