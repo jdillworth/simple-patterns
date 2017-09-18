@@ -10,5 +10,5 @@ The common quote about regular expressions is:
 
 Regular expressions are extremely useful, but they are hard to maintain.
 
-Simple Patterns provides a jQuery-like interface to generating regular
+Simple Patterns provides a chai-like interface to generating regular
 expressions.
