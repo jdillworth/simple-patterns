@@ -12,3 +12,9 @@ Regular expressions are extremely useful, but they are hard to maintain.
 
 Simple Patterns provides a chai-like interface to generating regular
 expressions.
+
+# TODO
+1. SimplePattern objects should be immutable
+1. Error checking with nice readable error messages
+1. More sample regexes to test against
+1. Enhancements to standard regex API (named groups, more?)

@@ -1,4 +1,20 @@
-class SimplePattern {
+const NEEDS_ESCAPE = '.[]{}\\';
+
+function esc(s:string):string {
+  if (!s) return s;
+
+  let s2 = '';
+  for (let i = 0; i < s.length; i++) {
+    let ch = s.charAt(i);
+    if (NEEDS_ESCAPE.indexOf(ch) !== -1) {
+      s2 += '\\';
+    }
+    s2 += ch;
+  }
+  return s2;
+}
+
+export default class SimplePattern {
   parts:Array<String>;
   nextQuantity:string;
 
@@ -7,14 +23,28 @@ class SimplePattern {
     this.nextQuantity = null;
   }
 
-  text(s:string):SimplePattern {
-    let q = '';
+  private applyQuantity():void {
     if (this.nextQuantity) {
-      q = this.nextQuantity;
+      this.parts.push(this.nextQuantity)
       this.nextQuantity = null;
     }
-    this.parts.push(s + q);
+  }
+
+  text(s:string):SimplePattern {
+    this.parts.push(esc(s));
+    this.applyQuantity();
     return this;
+  }
+
+  charInSet(s:string):SimplePattern {
+    this.parts.push('[' + esc(s) + ']');
+    this.applyQuantity();
+    return this;
+  }
+
+  chr(s:string):SimplePattern {
+    // TODO: make sure just one character
+    return this.text(s);
   }
 
   get atStart():SimplePattern {
@@ -27,19 +57,30 @@ class SimplePattern {
     return this;
   }
 
-  get digits():SimplePattern {
+  digits():SimplePattern {
     this.parts.push('\\d');
+    this.applyQuantity();
     return this;
   }
 
-  get digit():SimplePattern {
-    this.parts.push('\\d');
+  oneOf(...subs:Array<SimplePattern>):SimplePattern {
+    this.parts.push('(');
+    this.parts.push(subs.map((p) => p.toRegexSource()).join('|'));
+    this.parts.push(')');
+    this.applyQuantity();
     return this;
   }
 
-  get of():PatternBuilder {
-    // TODO: nextQuantity should be set
-    return makeSimplePatternBuilder(this);
+  digit():SimplePattern {
+    return this.digits();
+  }
+
+  get then():SimplePattern {
+    return this;
+  }
+
+  get of():SimplePattern {
+    return this;
   }
 
   count(n:number):SimplePattern {
@@ -47,8 +88,30 @@ class SimplePattern {
     return this;
   }
 
+  to(max:number):SimplePattern {
+    // TODO: error check nextQuantity and max/min values
+    let nq = this.nextQuantity;
+    let min = nq.substring(1, nq.length - 1);
+    this.nextQuantity = '{' + min + ',' + max + '}';
+    return this;
+  }
+
+
+  group(subPattern:SimplePattern):SimplePattern {
+    this.parts.push('(');
+    this.parts.push(subPattern.toRegexSource());
+    this.parts.push(')');
+    this.applyQuantity();
+    return this;
+  }
+
   toRegexSource():string {
     return this.parts.join('');
+  }
+
+  static group(subPattern:SimplePattern):SimplePattern {
+    let sp = new SimplePattern();
+    return sp.group(subPattern);
   }
 
   static get atStart():SimplePattern {
@@ -60,14 +123,14 @@ class SimplePattern {
     let s = new SimplePattern();
     return s.atEnd;
   }
-  static get digit():SimplePattern {
+  static digit():SimplePattern {
     let s = new SimplePattern();
-    return s.digit;
+    return s.digit();
   }
 
-  static get digits():SimplePattern {
+  static digits():SimplePattern {
     let s = new SimplePattern();
-    return s.digits;
+    return s.digits();
   }
 
   static count(n:number):SimplePattern {
@@ -80,54 +143,19 @@ class SimplePattern {
     return sp.text(s);
   }
 
+  static chr(s:string):SimplePattern {
+    let sp = new SimplePattern();
+    return sp.chr(s);
+  }
+
+  static charInSet(s:string):SimplePattern {
+    let sp = new SimplePattern();
+    return sp.charInSet(s);
+  }
+
+  static oneOf(...subs:Array<SimplePattern>):SimplePattern {
+    let sp = new SimplePattern();
+    return sp.oneOf(...subs);
+  }
+
 }
-
-interface PatternBuilder {
-  (subPattern:SimplePattern):SimplePattern;
-  atStart:SimplePattern;
-  atEnd:SimplePattern;
-  digit:SimplePattern;
-  digits:SimplePattern;
-  count(n:number):SimplePattern;
-  text(s:string):SimplePattern;
-  of:PatternBuilder;
-}
-
-function makeSimplePatternBuilder(existingPattern:SimplePattern):PatternBuilder {
-
-  let of = function(subPattern:SimplePattern):SimplePattern {
-    if (existingPattern) {
-      let q = existingPattern.nextQuantity || '';
-      existingPattern.nextQuantity = null;
-      if (q) {
-        existingPattern.parts.push('(' + subPattern.toRegexSource() + ')' + q);
-      } else {
-        existingPattern.parts.push(subPattern.toRegexSource());
-      }
-      return existingPattern;
-    } else {
-      return subPattern;
-    }
-  };
-
-  ['count', 'text'].forEach((method) => {
-    of[method] = function(x:any) {
-      if (existingPattern) return existingPattern[method](x);
-      else return SimplePattern[method](x);
-    };
-  });
-
-  ['atStart', 'atEnd', 'digit', 'digits'].forEach((prop) => {
-    Object.defineProperty(of, prop, {
-      get:() => {
-        if (existingPattern) return existingPattern[prop]
-        else return SimplePattern[prop]
-      }
-    });
-  });
-
-  return <PatternBuilder>of;
-}
-
-
-export default makeSimplePatternBuilder(null);
