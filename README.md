@@ -52,3 +52,4 @@ You can maintain this:
 1. Error checking with nice readable error messages
 1. More sample regexes to test against
 1. Enhancements to standard regex API (named groups, more?)
+1. docs
