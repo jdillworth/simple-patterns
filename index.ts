@@ -15,31 +15,31 @@ function esc(s:string):string {
 }
 
 export default class SimplePattern {
-  parts:Array<String>;
-  nextQuantity:string;
+  private regexParts:Array<string>;
+  private nextQuantity:string;
 
   constructor() {
-    this.parts = [];
+    this.regexParts = [];
     this.nextQuantity = null;
   }
 
-  private applyQuantity():void {
+  private concat(regexPart:string):SimplePattern {
+    let p2:Array<string> = this.regexParts.concat([regexPart]);
     if (this.nextQuantity) {
-      this.parts.push(this.nextQuantity)
-      this.nextQuantity = null;
+      p2 = p2.concat([this.nextQuantity]);
     }
+    let sp2 = new SimplePattern();
+    sp2.regexParts = p2;
+    return sp2;
   }
 
+
   text(s:string):SimplePattern {
-    this.parts.push(esc(s));
-    this.applyQuantity();
-    return this;
+    return this.concat(esc(s));
   }
 
   charInSet(s:string):SimplePattern {
-    this.parts.push('[' + esc(s) + ']');
-    this.applyQuantity();
-    return this;
+    return this.concat('[' + esc(s) + ']');
   }
 
   chr(s:string):SimplePattern {
@@ -47,28 +47,23 @@ export default class SimplePattern {
     return this.text(s);
   }
 
-  get atStart():SimplePattern {
-    this.parts.push('^');
-    return this;
+  atStart():SimplePattern {
+    // TODO: assert no quantity
+    return this.concat('^');
   }
 
-  get atEnd():SimplePattern {
-    this.parts.push('$');
-    return this;
+  atEnd():SimplePattern {
+    // TODO: assert no quantity
+    return this.concat('$');
   }
 
   digits():SimplePattern {
-    this.parts.push('\\d');
-    this.applyQuantity();
-    return this;
+    return this.concat('\\d');
   }
 
   oneOf(...subs:Array<SimplePattern>):SimplePattern {
-    this.parts.push('(');
-    this.parts.push(subs.map((p) => p.toRegexSource()).join('|'));
-    this.parts.push(')');
-    this.applyQuantity();
-    return this;
+    let p = ['(', subs.map((p) => p.toRegexSource()).join('|'), ')'];
+    return this.concat(p.join(''));
   }
 
   digit():SimplePattern {
@@ -83,30 +78,38 @@ export default class SimplePattern {
     return this;
   }
 
+  join(...subs:Array<SimplePattern>):SimplePattern {
+    let p:string = subs.map((p) => p.toRegexSource()).join('');
+    return this.concat(p);
+  }
+
   count(n:number):SimplePattern {
-    this.nextQuantity = '{' + n + '}';
-    return this;
+    let sp = new SimplePattern();
+    sp.regexParts = this.regexParts;
+    sp.nextQuantity = '{' + n + '}';
+    return sp;
   }
 
   to(max:number):SimplePattern {
     // TODO: error check nextQuantity and max/min values
+    let sp = new SimplePattern();
+    sp.regexParts = this.regexParts;
+
     let nq = this.nextQuantity;
     let min = nq.substring(1, nq.length - 1);
-    this.nextQuantity = '{' + min + ',' + max + '}';
-    return this;
+
+    sp.nextQuantity = '{' + min + ',' + max + '}';
+    return sp;
   }
 
 
   group(subPattern:SimplePattern):SimplePattern {
-    this.parts.push('(');
-    this.parts.push(subPattern.toRegexSource());
-    this.parts.push(')');
-    this.applyQuantity();
-    return this;
+    let p = ['(', subPattern.toRegexSource(), ')'];
+    return this.concat(p.join(''));
   }
 
   toRegexSource():string {
-    return this.parts.join('');
+    return this.regexParts.join('');
   }
 
   static group(subPattern:SimplePattern):SimplePattern {
@@ -114,14 +117,14 @@ export default class SimplePattern {
     return sp.group(subPattern);
   }
 
-  static get atStart():SimplePattern {
+  static atStart():SimplePattern {
     let s = new SimplePattern();
-    return s.atStart;
+    return s.atStart();
   }
 
-  static get atEnd():SimplePattern {
+  static atEnd():SimplePattern {
     let s = new SimplePattern();
-    return s.atEnd;
+    return s.atEnd();
   }
   static digit():SimplePattern {
     let s = new SimplePattern();
@@ -156,6 +159,11 @@ export default class SimplePattern {
   static oneOf(...subs:Array<SimplePattern>):SimplePattern {
     let sp = new SimplePattern();
     return sp.oneOf(...subs);
+  }
+
+  static join(...subs:Array<SimplePattern>):SimplePattern {
+    let sp = new SimplePattern();
+    return sp.join(...subs);
   }
 
 }

@@ -16,59 +16,43 @@ function esc(s) {
 }
 var SimplePattern = (function () {
     function SimplePattern() {
-        this.parts = [];
+        this.regexParts = [];
         this.nextQuantity = null;
     }
-    SimplePattern.prototype.applyQuantity = function () {
+    SimplePattern.prototype.concat = function (regexPart) {
+        var p2 = this.regexParts.concat([regexPart]);
         if (this.nextQuantity) {
-            this.parts.push(this.nextQuantity);
-            this.nextQuantity = null;
+            p2 = p2.concat([this.nextQuantity]);
         }
+        var sp2 = new SimplePattern();
+        sp2.regexParts = p2;
+        return sp2;
     };
     SimplePattern.prototype.text = function (s) {
-        this.parts.push(esc(s));
-        this.applyQuantity();
-        return this;
+        return this.concat(esc(s));
     };
     SimplePattern.prototype.charInSet = function (s) {
-        this.parts.push('[' + esc(s) + ']');
-        this.applyQuantity();
-        return this;
+        return this.concat('[' + esc(s) + ']');
     };
     SimplePattern.prototype.chr = function (s) {
         return this.text(s);
     };
-    Object.defineProperty(SimplePattern.prototype, "atStart", {
-        get: function () {
-            this.parts.push('^');
-            return this;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SimplePattern.prototype, "atEnd", {
-        get: function () {
-            this.parts.push('$');
-            return this;
-        },
-        enumerable: true,
-        configurable: true
-    });
+    SimplePattern.prototype.atStart = function () {
+        return this.concat('^');
+    };
+    SimplePattern.prototype.atEnd = function () {
+        return this.concat('$');
+    };
     SimplePattern.prototype.digits = function () {
-        this.parts.push('\\d');
-        this.applyQuantity();
-        return this;
+        return this.concat('\\d');
     };
     SimplePattern.prototype.oneOf = function () {
         var subs = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             subs[_i] = arguments[_i];
         }
-        this.parts.push('(');
-        this.parts.push(subs.map(function (p) { return p.toRegexSource(); }).join('|'));
-        this.parts.push(')');
-        this.applyQuantity();
-        return this;
+        var p = ['(', subs.map(function (p) { return p.toRegexSource(); }).join('|'), ')'];
+        return this.concat(p.join(''));
     };
     SimplePattern.prototype.digit = function () {
         return this.digits();
@@ -87,46 +71,47 @@ var SimplePattern = (function () {
         enumerable: true,
         configurable: true
     });
+    SimplePattern.prototype.join = function () {
+        var subs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            subs[_i] = arguments[_i];
+        }
+        var p = subs.map(function (p) { return p.toRegexSource(); }).join('');
+        return this.concat(p);
+    };
     SimplePattern.prototype.count = function (n) {
-        this.nextQuantity = '{' + n + '}';
-        return this;
+        var sp = new SimplePattern();
+        sp.regexParts = this.regexParts;
+        sp.nextQuantity = '{' + n + '}';
+        return sp;
     };
     SimplePattern.prototype.to = function (max) {
+        var sp = new SimplePattern();
+        sp.regexParts = this.regexParts;
         var nq = this.nextQuantity;
         var min = nq.substring(1, nq.length - 1);
-        this.nextQuantity = '{' + min + ',' + max + '}';
-        return this;
+        sp.nextQuantity = '{' + min + ',' + max + '}';
+        return sp;
     };
     SimplePattern.prototype.group = function (subPattern) {
-        this.parts.push('(');
-        this.parts.push(subPattern.toRegexSource());
-        this.parts.push(')');
-        this.applyQuantity();
-        return this;
+        var p = ['(', subPattern.toRegexSource(), ')'];
+        return this.concat(p.join(''));
     };
     SimplePattern.prototype.toRegexSource = function () {
-        return this.parts.join('');
+        return this.regexParts.join('');
     };
     SimplePattern.group = function (subPattern) {
         var sp = new SimplePattern();
         return sp.group(subPattern);
     };
-    Object.defineProperty(SimplePattern, "atStart", {
-        get: function () {
-            var s = new SimplePattern();
-            return s.atStart;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SimplePattern, "atEnd", {
-        get: function () {
-            var s = new SimplePattern();
-            return s.atEnd;
-        },
-        enumerable: true,
-        configurable: true
-    });
+    SimplePattern.atStart = function () {
+        var s = new SimplePattern();
+        return s.atStart();
+    };
+    SimplePattern.atEnd = function () {
+        var s = new SimplePattern();
+        return s.atEnd();
+    };
     SimplePattern.digit = function () {
         var s = new SimplePattern();
         return s.digit();
@@ -158,6 +143,14 @@ var SimplePattern = (function () {
         }
         var sp = new SimplePattern();
         return sp.oneOf.apply(sp, subs);
+    };
+    SimplePattern.join = function () {
+        var subs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            subs[_i] = arguments[_i];
+        }
+        var sp = new SimplePattern();
+        return sp.join.apply(sp, subs);
     };
     return SimplePattern;
 }());
