@@ -65,7 +65,7 @@ For example, rather than match an IP as above, you could define 2 variables to h
 
     let ip$ = R$.atStart().join(octet$, dot$, octet$, dot$, octet$, dot$, $octet).atEnd();
 
-Now you an use ip$ to match a an IP!
+Now you an use ip$ to match an IP address!
 
 
 # TODO
